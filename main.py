@@ -37,7 +37,7 @@ class Handler(BaseHTTPRequestHandler):
             return "{}™".format(word)
         return word
 
-    def do_GET(self):
+    def do_GET(self) -> None:
         self.send_response(200)
         self.send_header('Content-type', self._get_mimetype())
         self.end_headers()
@@ -48,6 +48,8 @@ class Handler(BaseHTTPRequestHandler):
         if self._get_mimetype() == 'text/html':
             soup = BeautifulSoup(response.content, 'html.parser')
             text = soup.find_all(text=True)
+            for el in soup.select('a[href^="https://habr.com"]'):
+                el['href'] = el['href'].replace('https://habr.com', 'http://localhost:8003')
             for sentence in text:
                 if self._sentence_filtering(sentence):
                     new_sentence = " ".join(map(self._check_word_length_and_replace, sentence.__str__().split()))
