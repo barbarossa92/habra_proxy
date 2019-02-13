@@ -1,6 +1,6 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
-import threading, requests, logging, string
+import requests, string
 from bs4 import BeautifulSoup
 from bs4.element import Comment
 
@@ -36,6 +36,8 @@ class Handler(BaseHTTPRequestHandler):
         table = str.maketrans({key: None for key in string.punctuation})
         clear_word = str(word).translate(table)
         if len(clear_word) == 6:
+            if len(word) > len(clear_word):
+                return "{}™{}".format(word[:-1], word[-1])
             return "{}™".format(word)
         return word
 
@@ -45,7 +47,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         response = requests.get(self.habr_url + self.path)
         if response.status_code != 200:
-            logging.error("Wrong")
+            print("Error: Response status code: %s" % response.status_code)
             return
         if self._get_mimetype() == 'text/html':
             soup = BeautifulSoup(response.content, 'html.parser')
