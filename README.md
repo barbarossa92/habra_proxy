@@ -21,14 +21,14 @@ foo@bar:~$ pip3 install -r requirements.txt
 foo@bar:~$ python3 main.py
 ```
 
-3. Open in browser:
+4. Open in browser:
 
   http://localhost:8003
   
   
  ## Testing
  
-Firstly you must be sure that local server is running and then run tests:
+1. Firstly you must be sure that local server is running and then run tests:
 
 ```console
 foo@bar:~$ python3 tests.py
