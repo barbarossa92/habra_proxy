@@ -36,7 +36,7 @@ class Handler(BaseHTTPRequestHandler):
         table = str.maketrans({key: None for key in string.punctuation})
         clear_word = str(word).translate(table)
         if len(clear_word) == 6:
-            if len(word) > len(clear_word):
+            if len(word) > len(clear_word) and word[-1] in string.punctuation:
                 return "{}™{}".format(word[:-1], word[-1])
             return "{}™".format(word)
         return word
