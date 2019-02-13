@@ -1,6 +1,8 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
-import requests, string
+import requests
+import string
+import re
 from bs4 import BeautifulSoup
 from bs4.element import Comment
 
@@ -31,16 +33,20 @@ class Handler(BaseHTTPRequestHandler):
             return self.mimetypes.get(path_format.split(".")[-1])
         return 'text/html'
 
+    def __init__(self, *args, **kwargs):
+        punctuation = string.punctuation + "»«"
+        self.table = str.maketrans({key: None for key in punctuation})
+        super().__init__(*args, **kwargs)
+
     def _sentence_filtering(self, elem):
         return elem.parent.name not in self.not_needed_tags and not isinstance(elem, Comment)
 
     def _check_word_length_and_replace(self, word):
-        table = str.maketrans({key: None for key in string.punctuation})
-        clear_word = str(word).translate(table)
-        if len(clear_word) == 6:
-            if len(word) > len(clear_word) and word[-1] in string.punctuation:
-                return "{}™{}".format(word[:-1], word[-1])
-            return "{}™".format(word)
+        clear_word = str(word).translate(self.table)
+        letters = re.findall("[a-zA-ZА-Яа-я]+", word)
+        if len(clear_word) == 6 and letters:
+            new_word = clear_word + "™"
+            word = word.replace(clear_word, new_word)
         return word
 
     def do_GET(self) -> None:
