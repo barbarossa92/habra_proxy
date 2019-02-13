@@ -4,6 +4,8 @@ import requests, string
 from bs4 import BeautifulSoup
 from bs4.element import Comment
 
+PORT = 8003
+
 
 class Handler(BaseHTTPRequestHandler):
 
@@ -50,7 +52,7 @@ class Handler(BaseHTTPRequestHandler):
             soup = BeautifulSoup(response.content, 'html.parser')
             text = soup.find_all(text=True)
             for el in soup.select('a[href^="https://habr.com"]'):
-                el['href'] = el['href'].replace('https://habr.com', 'http://localhost:8003')
+                el['href'] = el['href'].replace(self.habr_url, 'http://localhost:%s' % PORT)
             for sentence in text:
                 if self._sentence_filtering(sentence):
                     new_sentence = " ".join(map(self._check_word_length_and_replace, sentence.__str__().split()))
@@ -66,6 +68,6 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 
 if __name__ == '__main__':
-    server = ThreadedHTTPServer(('localhost', 8003), Handler)
+    server = ThreadedHTTPServer(('localhost', PORT), Handler)
     print("Starting server, use <Ctrl-C> to stop")
     server.serve_forever()
