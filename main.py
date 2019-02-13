@@ -3,6 +3,7 @@ from socketserver import ThreadingMixIn
 import requests
 import string
 import re
+import html
 from bs4 import BeautifulSoup
 from bs4.element import Comment
 
@@ -23,6 +24,8 @@ class Handler(BaseHTTPRequestHandler):
         'woff2': 'text/css',
         'svg': 'image/svg+xml'
     }
+    punctuation = string.punctuation + "»«"
+    table = str.maketrans({key: None for key in punctuation})
 
     def _get_mimetype(self):
         path = self.path
@@ -32,11 +35,6 @@ class Handler(BaseHTTPRequestHandler):
         if path_format:
             return self.mimetypes.get(path_format.split(".")[-1])
         return 'text/html'
-
-    def __init__(self, *args, **kwargs):
-        punctuation = string.punctuation + "»«"
-        self.table = str.maketrans({key: None for key in punctuation})
-        super().__init__(*args, **kwargs)
 
     def _sentence_filtering(self, elem):
         return elem.parent.name not in self.not_needed_tags and not isinstance(elem, Comment)
@@ -55,7 +53,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Content-type', self._get_mimetype())
         self.end_headers()
         if self._get_mimetype() == 'text/html':
-            soup = BeautifulSoup(response.content, 'html.parser')
+            soup = BeautifulSoup(response.content, 'lxml')
             text = soup.find_all(text=True)
             for el in soup.select('a[href^="https://habr.com"]'):
                 el['href'] = el['href'].replace(self.habr_url, 'http://localhost:%s' % PORT)
@@ -63,7 +61,7 @@ class Handler(BaseHTTPRequestHandler):
                 if self._sentence_filtering(sentence):
                     new_sentence = " ".join(map(self._check_word_length_and_replace, sentence.__str__().split()))
                     sentence.replace_with(new_sentence)
-            self.wfile.write(bytes(soup.prettify(formatter='html'), 'utf-8'))
+            self.wfile.write(bytes(html.unescape(soup.prettify(formatter='html')), 'utf-8'))
             return
         self.wfile.write(response.content)
         return
