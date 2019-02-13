@@ -1,7 +1,7 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
-import threading, requests, logging
-from bs4 import BeautifulSoup, NavigableString
+import threading, requests, logging, string
+from bs4 import BeautifulSoup
 from bs4.element import Comment
 
 
@@ -33,7 +33,9 @@ class Handler(BaseHTTPRequestHandler):
         return elem.parent.name not in self.not_needed_tags and not isinstance(elem, Comment)
 
     def _check_word_length_and_replace(self, word):
-        if len(word) == 6:
+        table = str.maketrans({key: None for key in string.punctuation})
+        clear_word = str(word).translate(table)
+        if len(clear_word) == 6:
             return "{}™".format(word)
         return word
 
