@@ -42,10 +42,10 @@ class Handler(BaseHTTPRequestHandler):
         return word
 
     def do_GET(self) -> None:
-        self.send_response(200)
+        response = requests.get(self.habr_url + self.path)
+        self.send_response(response.status_code)
         self.send_header('Content-type', self._get_mimetype())
         self.end_headers()
-        response = requests.get(self.habr_url + self.path)
         if self._get_mimetype() == 'text/html':
             soup = BeautifulSoup(response.content, 'html.parser')
             text = soup.find_all(text=True)
