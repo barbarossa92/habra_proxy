@@ -46,9 +46,6 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Content-type', self._get_mimetype())
         self.end_headers()
         response = requests.get(self.habr_url + self.path)
-        if response.status_code != 200:
-            print("Error: Response status code: %s" % response.status_code)
-            return
         if self._get_mimetype() == 'text/html':
             soup = BeautifulSoup(response.content, 'html.parser')
             text = soup.find_all(text=True)
