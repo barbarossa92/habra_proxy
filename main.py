@@ -39,12 +39,30 @@ class Handler(BaseHTTPRequestHandler):
     def _sentence_filtering(self, elem):
         return elem.parent.name not in self.not_needed_tags and not isinstance(elem, Comment)
 
-    def _check_word_length_and_replace(self, word):
-        clear_word = str(word).translate(self.table)
+    def _check_word_on_digits(self, word):
         letters = re.findall("[a-zA-ZА-Яа-я]+", word)
-        if len(clear_word) == 6 and letters:
+        if letters:
+            return True
+        return False
+
+    def _check_word_length_and_replace(self, word):
+        clear_word = self._get_word_without_marks(word)
+        is_letters = self._check_word_on_digits(word)
+        if len(str(clear_word).translate(self.table)) == 6 and is_letters:
             new_word = clear_word + "™"
             word = word.replace(clear_word, new_word)
+        return word
+
+    def _get_word_without_marks(self, word):
+        if len(word) > 2:
+            i, j = 0, None
+            if word[0] in self.punctuation:
+                i = 1
+            if word[-1] in self.punctuation:
+                j = -1
+            if word == word[i:j]:
+                return word
+            return self._get_word_without_marks(word[i:j])
         return word
 
     def do_GET(self) -> None:
