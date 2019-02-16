@@ -21,11 +21,12 @@ class Handler(BaseHTTPRequestHandler):
         'png': 'image/png',
         'js': 'application/javascript',
         'css': 'text/css',
-        'woff2': 'text/css',
+        'woff2': 'application/font-woff2',
         'svg': 'image/svg+xml'
     }
     punctuation = string.punctuation + "»«"
     table = str.maketrans({key: None for key in punctuation})
+    marks = {i: i for i in punctuation}
 
     def _get_mimetype(self):
         path = self.path
@@ -39,30 +40,13 @@ class Handler(BaseHTTPRequestHandler):
     def _sentence_filtering(self, elem):
         return elem.parent.name not in self.not_needed_tags and not isinstance(elem, Comment)
 
-    def _check_word_on_digits(self, word):
-        letters = re.findall("[a-zA-ZА-Яа-я]+", word)
-        if letters:
-            return True
-        return False
-
     def _check_word_length_and_replace(self, word):
-        clear_word = self._get_word_without_marks(word)
-        is_letters = self._check_word_on_digits(word)
-        if len(str(clear_word).translate(self.table)) == 6 and is_letters:
-            new_word = clear_word + "™"
-            word = word.replace(clear_word, new_word)
-        return word
-
-    def _get_word_without_marks(self, word):
-        if len(word) > 2:
-            i, j = 0, None
-            if word[0] in self.punctuation:
-                i = 1
-            if word[-1] in self.punctuation:
-                j = -1
-            if word == word[i:j]:
-                return word
-            return self._get_word_without_marks(word[i:j])
+        clear_word = html.unescape(word).strip(self.punctuation)
+        sub_words = re.split(r"(\W+)", clear_word)
+        for sub_word in sub_words:
+            if len(sub_word) == 6 and sub_word.isalpha():
+                new_word = sub_word + "™"
+                word = word.replace(sub_word, new_word)
         return word
 
     def do_GET(self) -> None:
@@ -71,15 +55,15 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Content-type', self._get_mimetype())
         self.end_headers()
         if self._get_mimetype() == 'text/html':
-            soup = BeautifulSoup(response.content, 'lxml')
+            soup = BeautifulSoup(response.content, 'html.parser')
             text = soup.find_all(text=True)
             for el in soup.select('a[href^="https://habr.com"]'):
                 el['href'] = el['href'].replace(self.habr_url, 'http://localhost:%s' % PORT)
             for sentence in text:
                 if self._sentence_filtering(sentence):
-                    new_sentence = " ".join(map(self._check_word_length_and_replace, sentence.__str__().split()))
+                    new_sentence = " ".join(map(self._check_word_length_and_replace, str(sentence).split()))
                     sentence.replace_with(new_sentence)
-            self.wfile.write(bytes(html.unescape(soup.prettify(formatter='html')), 'utf-8'))
+            self.wfile.write(bytes(str(soup), 'utf-8'))
             return
         self.wfile.write(response.content)
         return
