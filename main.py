@@ -40,7 +40,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _check_word_length_and_replace(self, word):
         clear_word = html.unescape(word).strip(self.punctuation)
-        sub_words = re.split(r"(\W+)", clear_word)
+        sub_words = re.split("[%s\d]" % self.punctuation, clear_word)
         for sub_word in sub_words:
             if len(sub_word) == 6 and sub_word.isalpha():
                 new_word = sub_word + "™"
