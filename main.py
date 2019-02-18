@@ -33,9 +33,7 @@ class Handler(BaseHTTPRequestHandler):
         if "?" in self.path:
             path = self.path.split("?")[0]
         path_format = path.split("/")[-1]
-        if path_format:
-            return self.mimetypes.get(path_format.split(".")[-1])
-        return 'text/html'
+        return self.mimetypes.get(path_format.split(".")[-1], 'text/html')
 
     def _sentence_filtering(self, elem):
         return elem.parent.name not in self.not_needed_tags and not isinstance(elem, Comment)
@@ -55,13 +53,15 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Content-type', self._get_mimetype())
         self.end_headers()
         if self._get_mimetype() == 'text/html':
-            soup = BeautifulSoup(response.content, 'html.parser')
+            soup = BeautifulSoup(response.content, 'lxml')
             text = soup.find_all(text=True)
             for el in soup.select('a[href^="https://habr.com"]'):
                 el['href'] = el['href'].replace(self.habr_url, 'http://localhost:%s' % PORT)
             for sentence in text:
                 if self._sentence_filtering(sentence):
                     new_sentence = " ".join(map(self._check_word_length_and_replace, str(sentence).split()))
+                    if sentence.parent.name != 'code':
+                        new_sentence = html.unescape(new_sentence)
                     sentence.replace_with(new_sentence)
             self.wfile.write(bytes(str(soup), 'utf-8'))
             return
