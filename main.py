@@ -24,7 +24,7 @@ class Handler(BaseHTTPRequestHandler):
         'woff2': 'application/font-woff2',
         'svg': 'image/svg+xml'
     }
-    punctuation = string.punctuation + "»«"
+    punctuation = string.punctuation + "»«™"
     table = str.maketrans({key: None for key in punctuation})
     marks = {i: i for i in punctuation}
 
@@ -40,8 +40,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def _check_word_length_and_replace(self, word):
         clear_word = html.unescape(word).strip(self.punctuation)
-        sub_words = re.split("[%s\d]" % self.punctuation, clear_word)
-        for sub_word in sub_words:
+        sub_words = re.split("[%s\d]+" % self.punctuation, clear_word)
+        for sub_word in set(sub_words):
+            sub_word = sub_word.strip()
             if len(sub_word) == 6 and sub_word.isalpha():
                 new_word = sub_word + "™"
                 word = word.replace(sub_word, new_word)
@@ -55,11 +56,14 @@ class Handler(BaseHTTPRequestHandler):
         if self._get_mimetype() == 'text/html':
             soup = BeautifulSoup(response.content, 'lxml')
             text = soup.find_all(text=True)
-            for el in soup.select('a[href^="https://habr.com"]'):
-                el['href'] = el['href'].replace(self.habr_url, 'http://localhost:%s' % PORT)
+            for a in soup.select('a[href^="https://habr.com"]'):
+                a['href'] = a['href'].replace(self.habr_url, 'http://localhost:%s' % PORT)
+            for svg in soup.select('use'):
+                if svg["xlink:href"].startswith(self.habr_url):
+                    svg['xlink:href'] = svg['xlink:href'].replace(self.habr_url, 'http://localhost:%s' % PORT)
             for sentence in text:
                 if self._sentence_filtering(sentence):
-                    new_sentence = " ".join(map(self._check_word_length_and_replace, str(sentence).split()))
+                    new_sentence = " ".join(map(self._check_word_length_and_replace, re.split(" ", str(sentence))))
                     if sentence.parent.name != 'code':
                         new_sentence = html.unescape(new_sentence)
                     sentence.replace_with(new_sentence)
